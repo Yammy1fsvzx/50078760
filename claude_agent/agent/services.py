@@ -8,11 +8,6 @@ import PyPDF2
 import csv
 import json
 from openpyxl import load_workbook
-import openai
-import subprocess
-import time
-import assemblyai as aai
-from tempfile import NamedTemporaryFile
 
 class FileProcessor:
     @staticmethod
@@ -35,29 +30,6 @@ class FileProcessor:
                 mime_type = 'text/csv'
             elif file_extension == '.json':
                 mime_type = 'application/json'
-            elif file_extension in ['.mp3', '.wav', '.ogg', '.m4a', '.flac']:
-                mime_type = 'audio/' + file_extension[1:]
-        
-        # Определяем, является ли файл аудио
-        is_audio = mime_type and mime_type.startswith('audio/')
-        is_audio_ext = file_extension in ['.mp3', '.wav', '.ogg', '.m4a', '.flac']
-        
-        # Обработка аудиофайлов
-        if is_audio or is_audio_ext:
-            # Проверяем наличие настройки AUDIO_PROCESSING_METHOD
-            method = getattr(settings, 'AUDIO_PROCESSING_METHOD', 'assemblyai')
-            
-            if method == 'assemblyai':
-                # Используем AssemblyAI (предпочтительный метод)
-                print(f"Обработка аудиофайла через AssemblyAI: {file_path}")
-                result = AssemblyAIHandler.process_audio(file_path)
-                if "error" in result:
-                    return f"Ошибка при обработке аудио: {result['error']}"
-                return f"ТРАНСКРИПЦИЯ АУДИО:\n\n{result['transcription']}"
-            else:
-                # Используем локальные методы транскрибации
-                print(f"Обработка аудиофайла через локальный метод: {file_path}")
-                return f"ТРАНСКРИПЦИЯ АУДИО:\n\n{AudioTranscriber.transcribe_audio(file_path, method)}"
         
         # Попытка прочитать как текст, если mime_type не определен или это текстовый файл
         if mime_type is None or mime_type == 'text/plain' or file_extension == '.txt':
@@ -71,7 +43,7 @@ class FileProcessor:
                         return f.read()
                 except Exception as e:
                     return f"Ошибка при чтении текстового файла: {str(e)}"
-                
+                  
         elif mime_type == 'application/pdf':
             text = ""
             with open(file_path, 'rb') as f:
@@ -257,149 +229,4 @@ Format your response in a structured, clear manner using markdown.
 Please respond to my request based on these documents. 
 Format your response in a structured, clear manner using markdown.
 """
-        return prompt
-
-class AssemblyAIHandler:
-    """Класс для работы с аудиофайлами через AssemblyAI"""
-    
-    @staticmethod
-    def get_api_key():
-        api_key = getattr(settings, 'ASSEMBLYAI_API_KEY', None)
-        if not api_key:
-            raise ValueError("ASSEMBLYAI_API_KEY не настроен в файле .env")
-        return api_key
-        
-    @staticmethod
-    def process_audio(file_path, prompt=None):
-        """
-        Обрабатывает аудиофайл через AssemblyAI и получает анализ от Claude
-        
-        Args:
-            file_path: Путь к аудиофайлу
-            prompt: Опциональный запрос для анализа (если не указан, будет выполнено только транскрибирование)
-            
-        Returns:
-            dict: Словарь с результатами транскрибации и анализа
-        """
-        try:
-            # Настройка AssemblyAI API ключа
-            aai.settings.api_key = AssemblyAIHandler.get_api_key()
-            
-            print(f"Начинаем транскрибирование аудиофайла: {file_path}")
-            
-            # Транскрибация файла
-            transcriber = aai.Transcriber()
-            transcript = transcriber.transcribe(file_path)
-            
-            # Результаты
-            result = {
-                "transcription": transcript.text,
-                "analysis": None
-            }
-            
-            # Если указан запрос для анализа, выполняем его
-            if prompt:
-                print(f"Выполняем анализ контента с запросом: {prompt}")
-                # Используем Claude 3.5 Sonnet по умолчанию, но можно настроить на другие модели
-                analysis = transcript.lemur.task(
-                    prompt,
-                    final_model=aai.LemurModel.claude3_5_sonnet
-                )
-                result["analysis"] = analysis.response
-            
-            return result
-        except Exception as e:
-            error_message = f"Ошибка при обработке аудио через AssemblyAI: {str(e)}"
-            print(error_message)
-            return {"error": error_message}
-
-class AudioTranscriber:
-    """Класс для транскрибации аудио-файлов"""
-    
-    @staticmethod
-    def transcribe_with_openai_api(file_path):
-        """Транскрибация аудио через OpenAI API"""
-        try:
-            # Проверяем наличие API ключа OpenAI
-            api_key = getattr(settings, 'OPENAI_API_KEY', None)
-            if not api_key:
-                return "Ошибка: Отсутствует API ключ OpenAI. Добавьте OPENAI_API_KEY в настройки."
-            
-            client = openai.OpenAI(api_key=api_key)
-            
-            with open(file_path, "rb") as audio_file:
-                transcript = client.audio.transcriptions.create(
-                    model="whisper-1", 
-                    file=audio_file
-                )
-            
-            return transcript.text
-        except Exception as e:
-            return f"Ошибка при транскрибации через API OpenAI: {str(e)}"
-    
-    @staticmethod
-    def transcribe_with_local_whisper(file_path):
-        """Транскрибация аудио с использованием локальной модели whisper"""
-        try:
-            # Проверка наличия установленного whisper
-            try:
-                subprocess.run(["whisper", "--help"], capture_output=True, check=False)
-            except FileNotFoundError:
-                return "Ошибка: Whisper не установлен. Установите через pip install openai-whisper"
-            
-            # Запускаем процесс транскрибации
-            result = subprocess.run(
-                ["whisper", file_path, "--model", "tiny", "--output_format", "txt"],
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode != 0:
-                return f"Ошибка при запуске whisper: {result.stderr}"
-            
-            # Название выходного файла такое же, как входного, но с расширением .txt
-            output_file = file_path.rsplit('.', 1)[0] + ".txt"
-            
-            # Читаем результат транскрипции
-            try:
-                with open(output_file, 'r', encoding='utf-8') as f:
-                    transcription = f.read()
-                # Удаляем временный файл
-                os.remove(output_file)
-                return transcription
-            except Exception as file_err:
-                return f"Ошибка при чтении файла транскрипции: {str(file_err)}"
-        
-        except Exception as e:
-            return f"Ошибка при локальной транскрибации: {str(e)}"
-    
-    @staticmethod
-    def transcribe_audio(file_path, method="api"):
-        """
-        Транскрибирует аудио-файл в текст
-        
-        Args:
-            file_path: Путь к аудио-файлу
-            method: Метод транскрибации ('api' для OpenAI API или 'local' для локальной модели)
-        
-        Returns:
-            str: Текст транскрипции или сообщение об ошибке
-        """
-        # Определяем формат аудио-файла
-        mime_type, _ = mimetypes.guess_type(file_path)
-        file_extension = os.path.splitext(file_path)[1].lower()
-        
-        # Проверяем, что это аудио-файл
-        is_audio = mime_type and mime_type.startswith('audio/')
-        is_audio_ext = file_extension in ['.mp3', '.wav', '.ogg', '.m4a', '.flac']
-        
-        if not (is_audio or is_audio_ext):
-            return f"Ошибка: Файл не является аудио-файлом: {mime_type or file_extension}"
-        
-        # Выбираем метод транскрибации
-        if method == "api":
-            return AudioTranscriber.transcribe_with_openai_api(file_path)
-        elif method == "local":
-            return AudioTranscriber.transcribe_with_local_whisper(file_path)
-        else:
-            return f"Ошибка: Неизвестный метод транскрибации: {method}" 
+        return prompt 

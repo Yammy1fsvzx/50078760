@@ -35,16 +35,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 mime_type = 'text/csv'
             elif file_extension == '.json':
                 mime_type = 'application/json'
-            elif file_extension == '.mp3':
-                mime_type = 'audio/mpeg'
-            elif file_extension == '.wav':
-                mime_type = 'audio/wav'
-            elif file_extension == '.ogg':
-                mime_type = 'audio/ogg'
-            elif file_extension == '.m4a':
-                mime_type = 'audio/m4a'
-            elif file_extension == '.flac':
-                mime_type = 'audio/flac'
             else:
                 mime_type = 'application/octet-stream'
         

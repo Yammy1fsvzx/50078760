@@ -104,12 +104,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 CLAUDE_API_KEY = os.getenv('CLAUDE_API_KEY')
 MODEL_NAME = os.getenv('MODEL_NAME', 'claude-3-sonnet-20240229')
 
-# Audio processing settings
-ASSEMBLYAI_API_KEY = os.getenv('ASSEMBLYAI_API_KEY')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-# Методы: 'assemblyai' (рекомендуется), 'openai' или 'local'
-AUDIO_PROCESSING_METHOD = os.getenv('AUDIO_PROCESSING_METHOD', 'assemblyai')
-
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
