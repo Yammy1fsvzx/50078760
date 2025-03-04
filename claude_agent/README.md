@@ -1,13 +1,50 @@
-# Claude Agent - Сервис для сравнения документов
+# Claude Agent
 
-Приложение для сравнительного анализа документов с использованием API Claude от Anthropic.
+API и веб-интерфейс для анализа документов с использованием Claude AI.
+
+## Запуск с помощью Docker
+
+### Требования
+- Docker
+- Docker Compose
+
+### Шаги для запуска
+
+1. Клонируйте репозиторий:
+```bash
+git clone <url_репозитория>
+cd claude_agent
+```
+
+2. Создайте файл .env на основе .env.example:
+```bash
+cp .env.example .env
+```
+
+3. Откройте файл .env и добавьте ваш API ключ Claude:
+```
+CLAUDE_API_KEY=ваш_ключ_api
+```
+
+4. Соберите и запустите контейнер:
+```bash
+docker-compose up -d
+```
+
+5. Приложение будет доступно по адресу http://localhost:8000
+
+### Доступ к админке
+- URL: http://localhost:8000/admin
+- Логин: admin
+- Пароль: admin
 
 ## Возможности
 
-- Загрузка документов различных форматов (.txt, .docx, .pdf, .csv, .json)
-- Сравнительный анализ документов с помощью Claude API
-- Пользовательские запросы для анализа документов
-- REST API для интеграции
+- Загрузка документов в различных форматах (PDF, DOCX, TXT, CSV, JSON, XLSX)
+- Создание аналитических запросов к документам
+- Обработка и анализ контента с использованием Claude API
+- Просмотр результатов анализа
+- Администраторская панель для управления документами и анализами
 
 ## Поддерживаемые форматы
 
@@ -15,38 +52,13 @@
 - .txt - Текстовые файлы
 - .docx - Microsoft Word
 - .pdf - Adobe PDF
+
+### Табличные данные
 - .csv - Таблицы CSV
-- .json - JSON-документы
 - .xlsx - Microsoft Excel
 
-## Установка
-
-1. Клонировать репозиторий:
-```bash
-git clone https://github.com/ваш-username/claude-agent.git
-cd claude-agent
-```
-
-2. Установить зависимости:
-```bash
-pip install -r requirements.txt
-```
-
-3. Создать и настроить файл .env:
-```
-CLAUDE_API_KEY=ваш_ключ_api_claude
-MODEL_NAME=claude-3-haiku-20240307
-```
-
-4. Запустить миграции:
-```bash
-python manage.py migrate
-```
-
-5. Запустить сервер:
-```bash
-python manage.py runserver
-```
+### Структурированные данные
+- .json - JSON-документы
 
 ## Лицензия
 

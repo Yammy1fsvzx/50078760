@@ -12,6 +12,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "unfold",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -19,6 +20,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",
     "drf_yasg",
     "agent",
 ]
@@ -38,7 +40,7 @@ ROOT_URLCONF = "claude_agent.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, 'agent', 'templates')],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -81,14 +83,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Internationalization
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
-
+LANGUAGE_CODE = "ru-ru"
+TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
-
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "static/"
@@ -108,4 +106,47 @@ MODEL_NAME = os.getenv('MODEL_NAME', 'claude-3-sonnet-20240229')
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10
+}
+
+# Unfold Admin settings
+UNFOLD = {
+    "SITE_TITLE": "Claude Agent Admin",
+    "SITE_HEADER": "Claude Agent",
+    "SITE_URL": "/",
+    "SITE_ICON": None,  # относительный URL для иконки сайта, когда отсутствует, отображается Unfold icon
+    "DASHBOARD_CALLBACK": None,  # функция обратного вызова для панели управления
+    "COLORS": {
+        "primary": {
+            "50": "250 245 255",  # фиолетовый
+            "100": "243 232 255",
+            "200": "233 213 255",
+            "300": "216 180 254",
+            "400": "192 132 252",
+            "500": "168 85 247",
+            "600": "147 51 234",
+            "700": "126 34 206",
+            "800": "107 33 168",
+            "900": "88 28 135",
+            "950": "59 7 100",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,  # показывать поле поиска
+        "show_all_applications": True,  # показывать все приложения
+        "navigation": [
+            {
+                "title": "Документы и Анализ",
+                "items": [
+                    {
+                        "title": "Документы",
+                        "link": "/admin/agent/document/",
+                    },
+                    {
+                        "title": "Анализы",
+                        "link": "/admin/agent/analysis/",
+                    },
+                ],
+            },
+        ],
+    },
 }

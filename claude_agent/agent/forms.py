@@ -2,11 +2,16 @@ from django import forms
 from .models import Document, Analysis
 
 class DocumentUploadForm(forms.ModelForm):
+    name = forms.CharField(
+        max_length=255, 
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введите имя документа'})
+    )
+    
     class Meta:
         model = Document
         fields = ['file', 'name']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введите имя документа'}),
             'file': forms.FileInput(attrs={'class': 'form-control'})
         }
 

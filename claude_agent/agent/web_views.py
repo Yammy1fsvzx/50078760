@@ -7,6 +7,8 @@ from .services import ClaudeService
 from datetime import datetime
 from django.views import View
 from django.shortcuts import get_object_or_404
+import os
+from django.contrib import messages
 
 class HomeView(TemplateView):
     template_name = 'agent/home.html'
@@ -31,7 +33,17 @@ class DocumentUploadView(CreateView):
     success_url = reverse_lazy('document_list')
     
     def form_valid(self, form):
-        return super().form_valid(form)
+        # Если имя не указано, используем имя файла (без расширения)
+        if not form.cleaned_data.get('name'):
+            uploaded_file = form.cleaned_data.get('file')
+            file_name = uploaded_file.name
+            # Удаляем расширение из имени файла для более красивого отображения
+            form.instance.name = os.path.splitext(file_name)[0]
+            print(f"Имя документа не указано, используем имя файла: {form.instance.name}")
+        
+        response = super().form_valid(form)
+        messages.success(self.request, f'Документ "{self.object.name}" успешно загружен.')
+        return response
 
 class AnalysisCreateView(CreateView):
     model = Analysis

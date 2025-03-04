@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: claude_agent
+    restart: always
+    volumes:
+      - ./:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DEBUG=True
+      - MODEL_NAME=claude-3-sonnet-20240229
+
+volumes:
+  media_data:
+    name: claude_agent_media 

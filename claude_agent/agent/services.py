@@ -10,9 +10,35 @@ import json
 from openpyxl import load_workbook
 
 class FileProcessor:
+    """
+    Класс для обработки и извлечения текста из файлов различных форматов.
+    
+    Обеспечивает унифицированный интерфейс для извлечения текстового
+    содержимого из документов разных типов для последующего анализа.
+    
+    Поддерживаемые форматы:
+    - Текстовые файлы (.txt)
+    - PDF документы (.pdf)
+    - Word документы (.docx)
+    - Excel таблицы (.xlsx)
+    - CSV файлы (.csv)
+    - JSON файлы (.json)
+    """
     @staticmethod
     def extract_text_from_file(file_path):
-        """Extract text content from different file types"""
+        """
+        Извлекает текстовое содержимое из файла в зависимости от его формата.
+        
+        Параметры:
+            file_path (str): Путь к файлу для обработки
+            
+        Возвращает:
+            str: Извлеченный текст из документа
+            
+        Примеры:
+            >>> text = FileProcessor.extract_text_from_file('/path/to/document.pdf')
+            >>> print(f"Извлечено {len(text)} символов")
+        """
         mime_type, _ = mimetypes.guess_type(file_path)
         file_extension = os.path.splitext(file_path)[1].lower()
         
@@ -83,8 +109,32 @@ class FileProcessor:
             return f"Unsupported file format: {mime_type}"
 
 class ClaudeService:
+    """
+    Сервис для взаимодействия с API Claude от Anthropic.
+    
+    Обеспечивает функциональность для отправки запросов к Claude API,
+    обрабатывает ошибки подключения и предоставляет механизм переключения
+    между различными моделями Claude в случае проблем.
+    
+    Использование:
+        ```python
+        # Создание экземпляра сервиса
+        claude = ClaudeService()
+        
+        # Сравнение документов
+        result = claude.compare_documents(documents=[doc1, doc2], custom_prompt="Сравни два отчета")
+        ```
+    """
     def __init__(self):
-        """Инициализация сервиса с проверкой наличия API-ключа"""
+        """
+        Инициализация сервиса с проверкой наличия API-ключа.
+        
+        Загружает API-ключ из настроек проекта, инициализирует клиента
+        Anthropic и настраивает список резервных моделей для автоматического
+        переключения в случае ошибок.
+        
+        Вызывает исключение ValueError, если API-ключ не найден.
+        """
         api_key = settings.CLAUDE_API_KEY
         if not api_key:
             raise ValueError("CLAUDE_API_KEY не найден в настройках. Проверьте файл .env")
@@ -108,7 +158,17 @@ class ClaudeService:
         print(f"Используется модель: {self.default_model}")
     
     def _send_api_request(self, model, system_message, prompt):
-        """Отправляет запрос к API с указанной моделью и обрабатывает ошибки"""
+        """
+        Отправляет запрос к API с указанной моделью и обрабатывает ошибки.
+        
+        Параметры:
+            model (str): Название модели Claude для использования
+            system_message (str): Системное сообщение для задания контекста
+            prompt (str): Основной запрос к модели
+            
+        Возвращает:
+            tuple: (ответ от модели или None, ошибка или None)
+        """
         try:
             print(f"Отправка запроса к Claude API с моделью {model}...")
             response = self.client.messages.create(
@@ -127,12 +187,24 @@ class ClaudeService:
     
     def compare_documents(self, documents, custom_prompt=None):
         """
-        Takes a list of document objects, extracts their content,
-        and sends to Claude for comparative analysis
+        Анализирует список документов и отправляет их содержимое в Claude для анализа.
         
-        Args:
-            documents: QuerySet of Document objects
-            custom_prompt: Optional custom prompt provided by user
+        Функция извлекает текст из каждого документа, формирует запрос к API
+        Claude и возвращает результат анализа. В случае ошибок с основной моделью,
+        автоматически пробует использовать резервные модели.
+        
+        Параметры:
+            documents (QuerySet): QuerySet с объектами Document для анализа
+            custom_prompt (str, optional): Пользовательский запрос для анализа
+            
+        Возвращает:
+            str: Текстовый результат анализа от Claude
+            
+        Примеры:
+            >>> result = claude_service.compare_documents(
+            ...     documents=Document.objects.filter(id__in=['uuid1', 'uuid2']),
+            ...     custom_prompt="Сравните эти документы и выделите основные различия"
+            ... )
         """
         document_contents = []
         
@@ -190,8 +262,20 @@ class ClaudeService:
         return f"Не удалось получить ответ ни от одной доступной модели Claude. Проверьте ваш API-ключ и доступ к моделям Claude. Последняя ошибка: {str(error)}"
     
     def _build_comparison_prompt(self, document_contents):
-        """Builds a structured prompt for Claude to compare documents"""
-        prompt = "Please perform a detailed comparative analysis of the following documents:\n\n"
+        """
+        Формирует структурированный запрос для сравнительного анализа документов.
+        
+        Параметры:
+            document_contents (list): Список словарей с содержимым документов
+            
+        Возвращает:
+            str: Готовый запрос для отправки в Claude API
+            
+        Примечание:
+            Метод ограничивает размер каждого документа до 10000 символов
+            во избежание превышения лимитов API.
+        """
+        prompt = "Пожалуйста, проведите подробный сравнительный анализ следующих документов:\n\n"
         
         for i, doc in enumerate(document_contents, 1):
             prompt += f"## DOCUMENT {i}: {doc['name']} (Format: {doc['type']})\n\n"
@@ -199,24 +283,31 @@ class ClaudeService:
             prompt += "\n\n---\n\n"
         
         prompt += """
-Please analyze these documents and provide:
-1. A summary of each document
-2. Key similarities between the documents
-3. Notable differences between the documents
-4. Any insights or patterns you observe
-5. A conclusion about how these documents relate to each other
+Пожалуйста, проанализируйте эти документы и предоставьте:
+1. Краткое содержание каждого документа
+2. Основные сходства между документами
+3. Заметные различия между документами
+4. Любые идеи или закономерности, которые вы заметили
+5. Выводы о том, как эти документы соотносятся друг с другом
 
-Format your response in a structured, clear manner using markdown.
+Сформулируйте свой ответ структурированным и понятным образом, используя markdown.
 """
         return prompt
     
     def _build_custom_prompt(self, document_contents, custom_prompt):
         """
-        Builds a custom prompt using the user's instructions
+        Формирует запрос с пользовательскими инструкциями для анализа документов.
         
-        Args:
-            document_contents: List of dictionaries with document contents
-            custom_prompt: User-provided instructions
+        Параметры:
+            document_contents (list): Список словарей с содержимым документов
+            custom_prompt (str): Пользовательские инструкции для анализа
+            
+        Возвращает:
+            str: Готовый запрос для отправки в Claude API
+            
+        Примечание:
+            Этот метод позволяет пользователям задавать собственные
+            инструкции для анализа, что делает систему более гибкой.
         """
         prompt = f"I have the following documents and I need you to: {custom_prompt}\n\n"
         
@@ -226,7 +317,7 @@ Format your response in a structured, clear manner using markdown.
             prompt += "\n\n---\n\n"
         
         prompt += """
-Please respond to my request based on these documents. 
-Format your response in a structured, clear manner using markdown.
+Пожалуйста, ответьте на мой запрос, основываясь на этих документах. 
+Сформулируйте свой ответ структурированным и понятным образом, используя markdown.
 """
         return prompt 
