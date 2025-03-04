@@ -14,7 +14,7 @@ services:
       - .env
     environment:
       - DEBUG=True
-      - MODEL_NAME=claude-3-sonnet-20240229
+      - ALLOWED_HOSTS=*
 
 volumes:
   media_data:
